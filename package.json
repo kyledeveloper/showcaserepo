@@ -1,0 +1,1 @@
+{"dependencies":{"three":"^0.186.0"},"description":"Personal works showcase — Three.js stacked-card timeline gallery (multi-file Vite source)","devDependencies":{"vite":"^8.3.0"},"name":"showcase-site","private":true,"scripts":{"build":"vite build","dev":"vite","preview":"vite preview"},"type":"module","version":"0.1.0"}

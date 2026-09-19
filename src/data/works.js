@@ -4,8 +4,7 @@
 import lifeShot from '../assets/liferpg.jpg';
 import bloomShot from '../assets/bloom-latte.jpg';
 import scannerShot from '../assets/options-scanner.jpg';
-
-export const PROJECT_IDS = ['life', 'bloom', 'leaps'];
+import agentShot from '../assets/agent-skills.jpg';
 
 export const works = [
   {
@@ -89,5 +88,30 @@ export const works = [
     },
     previewLabel: { zh: 'Options quant strategy scanner 界面截图', en: 'Options quant strategy scanner interface screenshot' },
     caption: { zh: '研究信号，而非自动交易', en: 'Research signals, not auto-trading' }
+  },
+  {
+    id: 'agent',
+    date: { zh: '2026 · 09', en: 'SEP · 2026' },
+    name: { zh: 'AI Agent 技能包', en: 'My First AI Agent' },
+    description: {
+      zh: '一套工业级 AI 编程智能体技能包：为 Cursor、Claude Code 等宿主智能体装配架构记忆、影响面雷达、极简约束与零信任安全门，让 AI 结对编程有纪律、可复盘。',
+      en: 'An industrial-grade skill pack for AI coding agents: equips host agents like Cursor and Claude Code with architectural memory, blast-radius radar, minimalist discipline, and zero-trust security gates — so AI pair-programming stays disciplined and reviewable.'
+    },
+    facts: [
+      { zh: 'Agent Skills', en: 'Agent Skills' },
+      { zh: '静态分析', en: 'Static analysis' },
+      { zh: '安全门禁', en: 'Security gates' }
+    ],
+    link: {
+      href: 'https://github.com/kyledeveloper/my-first-ai-agent',
+      label: { zh: '查看源码', en: 'View source' }
+    },
+    shot: { src: agentShot, kind: 'portrait' },
+    alt: {
+      zh: 'AI Agent 技能包概念封面：深色背景上的蓝色闪电与代码符号',
+      en: 'AI agent skill pack cover art: a blue lightning bolt with code glyphs on a dark background'
+    },
+    previewLabel: { zh: 'AI Agent 技能包封面', en: 'AI agent skill pack cover' },
+    caption: { zh: '给 AI 结对编程装上纪律', en: 'Discipline for AI pair-programming' }
   }
 ];

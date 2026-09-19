@@ -86,6 +86,10 @@ export function initGallery() {
   let locked = false;
   let touchStartY = 0;
 
+  // The add-project drawer (projectForm.js) toggles this class on <body>;
+  // while it is open the gallery must not steal wheel / keys / swipes.
+  const drawerOpen = () => document.body.classList.contains('add-project-open');
+
   const scrollPosition = () => (active + 1) / works.length; // hero=0 .. last=1
 
   function announcePosition() {
@@ -191,6 +195,7 @@ export function initGallery() {
   addEventListener(
     'wheel',
     (event) => {
+      if (drawerOpen()) return;
       if (Math.abs(event.deltaY) < Math.abs(event.deltaX)) return;
       event.preventDefault();
       if (locked) return;
@@ -211,12 +216,14 @@ export function initGallery() {
     touchStartY = event.changedTouches[0].clientY;
   }, { passive: true });
   addEventListener('touchend', (event) => {
+    if (drawerOpen()) return;
     const delta = touchStartY - event.changedTouches[0].clientY;
     if (Math.abs(delta) > 56) setActive(active + (delta > 0 ? 1 : -1));
   }, { passive: true });
 
   addEventListener('keydown', (event) => {
-    if (event.target.closest('a, button')) return;
+    if (event.target.closest('a, button, input, textarea, select, [contenteditable]')) return;
+    if (drawerOpen()) return;
     if (['ArrowDown', 'PageDown'].includes(event.key)) {
       event.preventDefault();
       setActive(active + 1);

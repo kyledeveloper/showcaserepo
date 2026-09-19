@@ -12,10 +12,6 @@ const SUN_ICON =
 const MOON_ICON =
   '<svg class="theme-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20.5 14.2A8.7 8.7 0 0 1 9.8 3.5 8.7 8.7 0 1 0 20.5 14.2Z" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-export function getTheme() {
-  return theme;
-}
-
 function updateThemeButton(button) {
   const label = t(theme === 'dark' ? 'themeToLight' : 'themeToDark');
   button.setAttribute('aria-label', label);

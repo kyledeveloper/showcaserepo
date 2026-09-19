@@ -20,8 +20,10 @@ const GITHUB_API = 'https://api.github.com/repos';
 function parseGithubRepository(value) {
   const trimmed = value.trim();
   if (!trimmed) return null;
+  // Tolerate pasting "github.com/owner/repo" without a scheme.
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
   try {
-    const parsed = new URL(trimmed);
+    const parsed = new URL(withScheme);
     if (!['github.com', 'www.github.com'].includes(parsed.hostname.toLowerCase())) return null;
     const [owner, rawRepo] = parsed.pathname.split('/').filter(Boolean);
     if (!owner || !rawRepo) return null;
@@ -41,7 +43,7 @@ function prettifyRepoName(repo) {
 
 function fill(template, values) {
   return Object.entries(values).reduce(
-    (text, [key, value]) => text.replace(`{${key}}`, value),
+    (text, [key, value]) => text.replaceAll(`{${key}}`, value),
     template
   );
 }
@@ -175,6 +177,7 @@ export function initProjectForm() {
       applyGithubMetadata({
         name: data.name ? prettifyRepoName(data.name) : '',
         description: data.description ?? '',
+        date: data.created_at ? data.created_at.slice(0, 7) : '',
         sourceUrl: data.html_url ?? repository.url,
         websiteUrl: data.homepage ?? '',
         tags: Array.isArray(data.topics) ? data.topics : []
@@ -190,7 +193,7 @@ export function initProjectForm() {
       if (seq !== fetchSeq) return;
       updateStatus('error');
     } finally {
-      if (seq === fetchSeq) fetchButton.disabled = false;
+      fetchButton.disabled = false;
     }
   }
 
@@ -211,7 +214,7 @@ export function initProjectForm() {
     if (Array.isArray(metadata.tags) && metadata.tags.length && !projectTags.value) {
       projectTags.value = metadata.tags.join(', ');
     }
-    if (metadata.date) projectDate.value = metadata.date;
+    if (metadata.date && !projectDate.value) projectDate.value = metadata.date;
   }
 
   // --- draft preview + submit ----------------------------------------------
@@ -262,6 +265,11 @@ export function initProjectForm() {
   fetchButton.addEventListener('click', fetchRepoInfo);
   form.addEventListener('submit', (event) => {
     event.preventDefault();
+    // Enter inside the GitHub URL field means "fetch", not "preview".
+    if (document.activeElement === githubUrl) {
+      fetchRepoInfo();
+      return;
+    }
     const draft = getDraft();
     renderDraftPreview();
     window.dispatchEvent(new CustomEvent('gallery-add-project', { detail: { draft } }));
@@ -273,10 +281,20 @@ export function initProjectForm() {
       closeDrawer();
       return;
     }
+    // Arrow-key navigation between the source-method tabs (roving tabindex).
+    if (['ArrowLeft', 'ArrowRight'].includes(event.key) && event.target.classList?.contains('source-tab')) {
+      event.preventDefault();
+      const current = sourceTabs.indexOf(event.target);
+      const step = event.key === 'ArrowRight' ? 1 : -1;
+      const next = sourceTabs[(current + step + sourceTabs.length) % sourceTabs.length];
+      next.focus();
+      setSourceMode(next.dataset.sourceMode);
+      return;
+    }
     if (event.key !== 'Tab') return;
-    const focusable = [...drawer.querySelectorAll('button:not([hidden]):not([tabindex="-1"]), input:not([hidden]), textarea:not([hidden])')].filter(
-      (element) => !element.closest('[hidden]')
-    );
+    const focusable = [...drawer.querySelectorAll(
+      'a[href]:not([hidden]), button:not([hidden]):not([disabled]), input:not([hidden]):not([disabled]), textarea:not([hidden]):not([disabled]), select:not([hidden]):not([disabled]), [tabindex]:not([tabindex="-1"]):not([hidden])'
+    )].filter((element) => !element.closest('[hidden]'));
     if (!focusable.length) return;
     const first = focusable[0];
     const last = focusable[focusable.length - 1];

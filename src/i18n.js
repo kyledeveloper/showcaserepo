@@ -16,10 +16,10 @@ const copy = {
     stackHeading: '作品画廊',
     addProject: '添加项目',
     stackHint: '滚轮翻页 · 悬停展开',
+    stackHintTouch: '滑动翻页 · 点击展开',
     startBrowse: '开始浏览作品',
     scroll: '滚动',
     projectFeatures: '项目技术与特性',
-    projectLabel: '项目',
     newProjectTitle: '添加新项目',
     newProjectIntro: '粘贴 GitHub 仓库地址，一键拉取项目资料；或切换到手动填写。整个过程留在当前画廊中。',
     closeProjectForm: '关闭添加项目页面',
@@ -74,10 +74,10 @@ const copy = {
     stackHeading: 'Project Gallery',
     addProject: 'Add project',
     stackHint: 'Wheel to flip · Hover to expand',
+    stackHintTouch: 'Swipe to flip · Tap to expand',
     startBrowse: 'Start browsing projects',
     scroll: 'Scroll',
     projectFeatures: 'Project technologies and features',
-    projectLabel: 'Project',
     newProjectTitle: 'Add a new project',
     newProjectIntro: 'Paste a GitHub repository URL to fetch its details in one click — or switch to manual entry. Everything stays inside this gallery.',
     closeProjectForm: 'Close add-project page',
@@ -122,6 +122,8 @@ const copy = {
 
 let language = navigator.language.toLowerCase().startsWith('zh') ? 'zh' : 'en';
 const listeners = new Set();
+// Touch devices expand cards by tap rather than hover — swap the hint copy.
+const touchLike = matchMedia('(hover: none)');
 
 export function getLanguage() {
   return language;
@@ -141,7 +143,9 @@ function applyStaticCopy() {
   document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
   document.title = language === 'zh' ? '个人作品展示厅' : 'Selected Works';
   document.querySelectorAll('[data-i18n]').forEach((element) => {
-    element.textContent = strings[element.dataset.i18n];
+    const key =
+      element.dataset.i18n === 'stackHint' && touchLike.matches ? 'stackHintTouch' : element.dataset.i18n;
+    element.textContent = strings[key];
   });
   document.querySelectorAll('[data-i18n-label]').forEach((element) => {
     element.dataset.label = strings[element.dataset.i18nLabel];

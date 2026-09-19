@@ -55,6 +55,12 @@ export function initScene() {
     document.documentElement.classList.add('webgl-fallback');
     return;
   }
+  // If the context is lost later (e.g. GPU pressure), hide the canvas too —
+  // the CSS gradient behind it keeps the page readable.
+  canvas.addEventListener('webglcontextlost', (event) => {
+    event.preventDefault();
+    document.documentElement.classList.add('webgl-fallback');
+  });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.setClearColor(0x000000, 0); // transparent — CSS gradient shows through
 

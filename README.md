@@ -101,12 +101,20 @@ src/assets/             三张作品截图（构建时输出为带 hash 的独�
 
 ## 部署
 
-`npm run build` 产物在 `dist/`，纯静态文件。`vite.config.js` 里
-`base: '/showcaserepo/'` 对应 GitHub 项目页面地址
-`https://<user>.github.io/showcaserepo/`。
+实际部署流程（手动）：
 
-`.github/workflows/deploy.yml` 已配置：每次 push 到 `main` 自动
-`npm ci` → `npm run build` → 部署到 GitHub Pages。首次使用前需在仓库
-Settings → Pages 里把 Source 设为 "GitHub Actions"。
+1. 本地 `npm run build`，产物在 `dist/`，纯静态文件。
+2. 把 `dist/` 的内容推送到仓库的 `gh-pages` 分支（替换该分支的全部内容）。
+3. GitHub 仓库 Settings → Pages 里，Source 设为 "Deploy from a branch"，
+   Branch 选 `gh-pages` / `/ (root)`。线上地址：
+   `https://<user>.github.io/showcaserepo/`。
+
+`vite.config.js` 里 `base: '/showcaserepo/'` 对应 GitHub 项目页面地址。
+
+`.github/workflows/deploy.yml` 只存在于本地源码：它描述的是未来的
+GitHub Actions 自动部署（push 到 `main` 自动 `npm ci` → `npm run build`
+→ 部署到 Pages），但当前用于推送的 token 缺少 `workflow` 权限，
+GitHub 会拒绝 workflow 文件的写入，所以该文件尚未推送到远端。
+拿到 `workflow` 权限后再启用，并把 Pages Source 切换为 "GitHub Actions"。
 
 本地预览构建产物：`npm run preview`（http://localhost:4173）。

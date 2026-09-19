@@ -2,3 +2,6 @@ node_modules/
 dist/
 extracted/
 .DS_Store
+
+# local-only: token lacks workflow scope, never push via API
+.github/workflows/

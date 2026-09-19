@@ -3,11 +3,11 @@
 //
 // Interaction model (rebuilt from the shipped single-file behavior):
 // - Wheel / arrow keys / PageUp-PageDown / Home-End / touch swipe / right-side
-//   timeline dots flip through screens: hero -> project 1 -> 2 -> 3.
+//   timeline dots flip through screens: hero -> project 1 -> 2 -> ... (one dot per work).
 // - Preview state shows only the project name; on desktop, hovering (or keyboard
 //   focus within) the active card reveals details, on touch devices tapping the
 //   active card toggles them (CSS :hover/:focus-within + .is-open class).
-// - Top progress bar + "01 / 03" counter track position.
+// - Top progress bar + "01 / 04" counter track position.
 // - Emits `portfolio-scroll` (detail: 0..1) so the Three.js background can fly
 //   the camera through the tunnel in sync.
 
@@ -78,8 +78,29 @@ export function initGallery() {
     .join('');
 
   const chapters = [...stack.querySelectorAll('.chapter[data-project]')];
-  const navButtons = [...document.querySelectorAll('.timeline-nav button')];
   const screens = ['hero', ...works.map((work) => work.id)];
+
+  // Timeline dots: one per screen (hero + each project), generated from data so
+  // newly added projects automatically get a dot. Labels refresh on language change.
+  const nav = document.querySelector('.timeline-nav');
+  function renderNavDots(language) {
+    nav.innerHTML = '';
+    const dots = [
+      { target: 'hero', label: t('goStart') },
+      ...works.map((work) => ({ target: work.id, label: `${t('goTo')} ${work.name[language]}` }))
+    ];
+    dots.forEach(({ target, label }) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.target = target;
+      button.dataset.label = label; // tooltip text via CSS attr(data-label)
+      button.setAttribute('aria-label', label);
+      button.addEventListener('click', () => goToTarget(target));
+      nav.append(button);
+    });
+    return [...nav.querySelectorAll('button')];
+  }
+  let navButtons = renderNavDots(getLanguage());
 
   let active = -1; // -1 = hero, 0..n-1 = project index
   let wheelTotal = 0;
@@ -167,10 +188,6 @@ export function initGallery() {
     setActive(screens.indexOf(target) - 1);
   }
 
-  navButtons.forEach((button) => {
-    button.addEventListener('click', () => goToTarget(button.dataset.target));
-  });
-
   const startButton = document.getElementById('start-browsing');
   if (startButton) startButton.addEventListener('click', () => setActive(0));
   const scrollCue = document.getElementById('scroll-cue');
@@ -243,6 +260,7 @@ export function initGallery() {
 
   // Re-render card copy when the language changes (preserve expand state).
   onLanguageChange((language) => {
+    navButtons = renderNavDots(language);
     chapters.forEach((chapter, index) => {
       const work = works[index];
       const wasOpen = chapter.querySelector('.project-card').classList.contains('is-open');

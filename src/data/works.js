@@ -5,6 +5,7 @@ import lifeShot from '../assets/liferpg.jpg';
 import bloomShot from '../assets/bloom-latte.jpg';
 import scannerShot from '../assets/options-scanner.jpg';
 import agentShot from '../assets/agent-skills.jpg';
+import freezerShot from '../assets/impulse-freezer.jpg';
 
 export const works = [
   {
@@ -25,7 +26,7 @@ export const works = [
       label: { zh: '查看源码', en: 'View source' }
     },
     website: {
-      href: 'https://life-rpg-mauve-mu.vercel.app',
+      href: 'https://kyledeveloper-liferpg.vercel.app',
       label: { zh: '点击进入', en: 'Open website' }
     },
     shot: { src: lifeShot, kind: 'portrait' },
@@ -106,12 +107,37 @@ export const works = [
       href: 'https://github.com/kyledeveloper/my-first-ai-agent',
       label: { zh: '查看源码', en: 'View source' }
     },
-    shot: { src: agentShot, kind: 'portrait' },
+    shot: { src: agentShot, kind: 'logo' },
     alt: {
-      zh: 'AI Agent 技能包概念封面：深色背景上的蓝色闪电与代码符号',
-      en: 'AI agent skill pack cover art: a blue lightning bolt with code glyphs on a dark background'
+      zh: 'my-first-ai-agent 项目 logo：可爱的卡通机器人，配文 LEARNING · EXPLORING · CREATING',
+      en: 'my-first-ai-agent project logo: a cute cartoon robot with the tagline LEARNING · EXPLORING · CREATING'
     },
-    previewLabel: { zh: 'AI Agent 技能包封面', en: 'AI agent skill pack cover' },
+    previewLabel: { zh: 'AI Agent 技能包 logo', en: 'AI agent skill pack logo' },
     caption: { zh: '给 AI 结对编程装上纪律', en: 'Discipline for AI pair-programming' }
+  },
+  {
+    id: 'freezer',
+    date: { zh: '2026 · 09', en: 'SEP · 2026' },
+    name: { zh: '冲动消费冷冻箱', en: 'Impulse Purchase Freezer' },
+    description: {
+      zh: '专治非理性冲动消费。想买的东西先放进「冰封储物格」，配上冷静期倒计时——到期还想买再解冻，忍住没花的钱自动计入「金库」。',
+      en: 'A cure for irrational impulse spending. Stash cravings in frozen slots with a cooldown countdown — unfreeze only if you still want it when the timer ends, and the money you held back piles up in the Vault.'
+    },
+    facts: [
+      { zh: 'Expo · React Native', en: 'Expo · React Native' },
+      { zh: '冷静期倒计时', en: 'Cooldown countdown' },
+      { zh: '金库记账', en: 'Vault savings' }
+    ],
+    link: {
+      href: 'https://github.com/kyledeveloper/Impulse-Purchase-Freezer',
+      label: { zh: '查看源码', en: 'View source' }
+    },
+    shot: { src: freezerShot, kind: 'portrait' },
+    alt: {
+      zh: '冲动消费冷冻箱应用截图：荧光绿界面，冰箱插画，冷冻/金库切换标签，冰封储物格与倒计时',
+      en: 'Impulse Purchase Freezer app screenshot: lime-green interface with a fridge illustration, Freezing/Vault tabs, frozen slots, and a countdown timer'
+    },
+    previewLabel: { zh: '冲动消费冷冻箱应用截图', en: 'Impulse Purchase Freezer app screenshot' },
+    caption: { zh: '先冷冻，再决定', en: 'Freeze first, decide later' }
   }
 ];

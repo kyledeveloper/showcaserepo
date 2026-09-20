@@ -405,6 +405,7 @@
     }
     .project-shot img { display: block; width: 100%; height: 100%; object-fit: cover; }
     .project-shot.portrait { width: min(248px, 72%); aspect-ratio: 1179 / 2556; --tilt: 3deg; }
+    .project-shot.logo { width: min(440px, 94%); aspect-ratio: 1179 / 786; --tilt: 2deg; }
     .chapter[data-project="bloom"] .project-shot { --tilt: -3deg; }
     .project-shot.scanner { width: min(480px, 96%); aspect-ratio: 1179 / 1275; --tilt: 2deg; }
     .webgl-fallback #space-canvas { display: none; }

@@ -719,6 +719,11 @@
     }
   
     /* ---- add-project entry panel ---- */
+    /* New card internals for the mobile redesign. On desktop the details
+       wrapper is transparent to layout (display: contents) so the desktop
+       card renders exactly as before; the tap hint never shows on desktop. */
+    .project-details { display: contents; }
+    .tap-hint { display: none; }
     .gallery-title-row {
       grid-column: 1 / -1;
       display: flex;
@@ -908,4 +913,199 @@
       .github-fetch-row { grid-template-columns: 1fr; }
       .form-actions { align-items: stretch; flex-direction: column; }
       .preview-button { width: 100%; }
+    }
+
+    /* ============ Mobile optimization (Plan C) — max-width: 760px only ============
+       Everything in this block is scoped to mobile. Desktop rules above are
+       untouched: the stacked 3D gallery, hover-expand cards, and full
+       starfield all render exactly as before on wider screens. */
+    @media (max-width: 760px) {
+      /* --- page-turn animation: flat vertical slide + fade + subtle scale --- */
+      .chapter:not(.intro):not(.outro) {
+        transform-origin: 50% 50%;
+        transition: transform .5s cubic-bezier(.16, 1, .3, 1), opacity .4s ease, filter .4s ease;
+      }
+      /* vertical gestures on the card surface belong to the JS drag-follow
+         pager — the browser must not claim them mid-drag (iOS touchcancel).
+         The scrollable details region above re-enables native pan-y. */
+      .chapter:not(.intro):not(.outro),
+      .screen-hero { touch-action: pan-x pinch-zoom; }
+
+      /* --- lighter backdrop blur for mobile GPUs (card stays readable) --- */
+      .project-card { backdrop-filter: blur(8px) saturate(110%); }
+      .utility-controls { backdrop-filter: blur(8px) saturate(125%); }
+      .project-drawer { backdrop-filter: blur(6px); }
+
+      /* --- gallery guide: full header on hero, slim mini bar on projects --- */
+      /* right: 126px clears the fixed utility controls (~106px + margin) so
+         the add-project button stays visible and tappable on narrow screens */
+      .gallery-guide.is-mini {
+        top: max(14px, env(safe-area-inset-top));
+        left: 16px;
+        right: 126px;
+        max-width: none;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--panel);
+        box-shadow: 0 8px 24px color-mix(in srgb, var(--bg-deep) 28%, transparent);
+        backdrop-filter: blur(8px);
+        animation: guide-mini-in .28s ease;
+      }
+      @keyframes guide-mini-in { from { opacity: 0; transform: translateY(-8px); } }
+      /* reverse transition: full header fades back in when returning to hero */
+      .gallery-guide:not(.is-mini):not(.is-hidden) { animation: guide-full-in .28s ease; }
+      @keyframes guide-full-in { from { opacity: 0; transform: translateY(8px); } }
+      .gallery-guide.is-mini .gallery-title-row { display: contents; }
+      .gallery-guide.is-mini strong {
+        font-size: 14px;
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .gallery-guide.is-mini [data-i18n="stackHint"] { display: none; }
+      .gallery-guide.is-mini #stack-counter { order: 1; margin-left: auto; }
+      .gallery-guide.is-mini .add-project-button { order: 2; min-height: 34px; padding: 0 10px; font-size: 10px; }
+      /* very narrow screens: drop the title so counter + button fit */
+      @media (max-width: 380px) {
+        .gallery-guide.is-mini strong { display: none; }
+      }
+
+      /* reclaim vertical space now that the header is slim */
+      .chapter:not(.intro):not(.outro) { padding-top: 104px; }
+      .project-shell { height: min(680px, calc(100svh - 124px)); }
+
+      /* --- preview-state card redesign: artwork visible, no dead areas ---
+         Preview = active card without .is-open / :hover / :focus-within. */
+      .chapter.is-active .project-card:not(.is-open):not(:hover):not(:focus-within) {
+        grid-template-rows: minmax(0, 1fr) auto;
+      }
+      .chapter.is-active .project-card:not(.is-open):not(:hover):not(:focus-within) .project-visual {
+        visibility: visible;
+        opacity: 1;
+        transform: none;
+        transition-delay: 0s;
+        min-height: 0;
+      }
+      /* bottom-anchor the artwork near the title so the visual area reads as
+         one composed unit instead of a floating thumbnail */
+      .chapter.is-active .project-card:not(.is-open):not(:hover):not(:focus-within) .visual-stage {
+        place-items: end center;
+        padding-bottom: 46px;
+      }
+      .chapter.is-active .project-card:not(.is-open):not(:hover):not(:focus-within) .project-shot.portrait { width: min(175px, 52%); }
+      .chapter.is-active .project-card:not(.is-open):not(:hover):not(:focus-within) .project-shot.scanner { width: min(320px, 94%); }
+      .chapter.is-active .project-card:not(.is-open):not(:hover):not(:focus-within) .project-shot.logo { width: min(280px, 88%); }
+      /* landscape guard: never overflow the visual area mid-image */
+      .chapter.is-active .project-card:not(.is-open):not(:hover):not(:focus-within) .project-shot {
+        max-width: 100%;
+        max-height: 100%;
+      }
+      /* show the caption microcopy in preview — anchors the visual area */
+      .chapter.is-active .project-card:not(.is-open):not(:hover):not(:focus-within) .visual-caption {
+        opacity: 1;
+        transform: none;
+      }
+      .chapter.is-active .project-card:not(.is-open):not(:hover):not(:focus-within) .project-copy {
+        justify-content: flex-start;
+        padding: 16px 20px 20px;
+      }
+      .chapter.is-active .project-card:not(.is-open):not(:hover):not(:focus-within) .project-copy h2 {
+        position: static;
+        margin: 0;
+        font-size: clamp(30px, 9vw, 44px);
+      }
+      .chapter.is-active .project-card:not(.is-open):not(:hover):not(:focus-within) .project-topline,
+      .chapter.is-active .project-card:not(.is-open):not(:hover):not(:focus-within) .facts,
+      .chapter.is-active .project-card:not(.is-open):not(:hover):not(:focus-within) .actions {
+        display: none;
+      }
+      .chapter.is-active .project-card:not(.is-open):not(:hover):not(:focus-within) .project-details {
+        display: block;
+      }
+      .chapter.is-active .project-card:not(.is-open):not(:hover):not(:focus-within) .tagline {
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        margin: 8px 0 0;
+        font-size: 13px;
+        line-height: 1.5;
+        opacity: 1;
+        transform: none;
+        pointer-events: none;
+      }
+      .chapter.is-active .project-card:not(.is-open):not(:hover):not(:focus-within) .tap-hint {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 10px;
+        color: var(--accent);
+        font: 700 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: .08em;
+      }
+      .chapter.is-active .project-card:not(.is-open):not(:hover):not(:focus-within) .tap-hint svg {
+        width: 12px;
+        height: 12px;
+        animation: drift 1.8s ease-in-out infinite;
+      }
+      /* the hint never shows once the card is expanded */
+      .chapter.is-active .project-card:is(.is-open, :hover, :focus-within) .tap-hint { display: none; }
+
+      /* --- expanded state: internally scrollable details, larger type --- */
+      .chapter.is-active .project-card:is(.is-open, :hover, :focus-within) .project-details {
+        display: block;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-y pinch-zoom; /* native vertical scroll; JS owns the rest */
+      }
+      .chapter.is-active .project-card:is(.is-open, :hover, :focus-within) .project-copy {
+        padding-bottom: 92px; /* clear the pinned project name */
+      }
+      .chapter.is-active .project-card:is(.is-open, :hover, :focus-within) .tagline {
+        display: block;
+        overflow: visible;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      .chapter.is-active .project-card:is(.is-open, :hover, :focus-within) .project-topline { display: flex; }
+      .chapter.is-active .project-card:is(.is-open, :hover, :focus-within) .facts { display: flex; }
+      .chapter.is-active .project-card:is(.is-open, :hover, :focus-within) .facts li { padding: 7px 10px; font-size: 11px; }
+      .chapter.is-active .project-card:is(.is-open, :hover, :focus-within) .actions { display: flex; }
+      .chapter.is-active .project-card:is(.is-open, :hover, :focus-within) .project-link { min-height: 44px; font-size: 12px; }
+
+      /* --- expanded state: collapse the visual into a slim banner so the
+             details get ~80% of the card instead of 57% --- */
+      .chapter.is-active .project-card:is(.is-open, :hover, :focus-within) {
+        grid-template-rows: auto minmax(0, 1fr);
+      }
+      .chapter.is-active .project-card:is(.is-open, :hover, :focus-within) .project-visual {
+        min-height: 0;
+        max-height: 150px;
+        overflow: hidden;
+      }
+      .chapter.is-active .project-card:is(.is-open, :hover, :focus-within) .visual-stage {
+        padding: 12px 16px;
+      }
+      .chapter.is-active .project-card:is(.is-open, :hover, :focus-within) .project-shot {
+        width: 100%;
+        height: 118px;
+        aspect-ratio: auto;
+        transform: none;
+        box-shadow: 0 10px 28px rgba(0,0,0,.28);
+      }
+      .chapter.is-active .project-card:is(.is-open, :hover, :focus-within) .visual-caption {
+        display: none;
+      }
+
+      /* reduced motion keeps working: instant transitions on mobile too */
+      @media (prefers-reduced-motion: reduce) {
+        .chapter:not(.intro):not(.outro) { transition: opacity .01ms linear; }
+      }
     }

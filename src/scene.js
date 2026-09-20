@@ -48,6 +48,12 @@ export function initScene() {
   const canvas = document.getElementById('space-canvas');
   if (!canvas) return;
 
+  // Mobile / touch: fewer stars, no tunnel rings, lower pixel ratio —
+  // the CSS gradient behind the canvas keeps the look intact.
+  const lowPower =
+    matchMedia('(max-width: 760px)').matches ||
+    (matchMedia('(hover: none)').matches && matchMedia('(pointer: coarse)').matches);
+
   let renderer;
   try {
     renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: 'high-performance' });
@@ -61,7 +67,7 @@ export function initScene() {
     event.preventDefault();
     document.documentElement.classList.add('webgl-fallback');
   });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setPixelRatio(Math.min(devicePixelRatio, lowPower ? 1.5 : 2));
   renderer.setClearColor(0x000000, 0); // transparent — CSS gradient shows through
 
   const scene = new THREE.Scene();
@@ -74,7 +80,7 @@ export function initScene() {
   const glowTexture = makeGlowTexture();
 
   // --- Starfield -----------------------------------------------------------
-  const STAR_COUNT = 1300;
+  const STAR_COUNT = lowPower ? 400 : 1300;
   const starPositions = new Float32Array(STAR_COUNT * 3);
   const starColors = new Float32Array(STAR_COUNT * 3);
   const tmpColor = new THREE.Color();
@@ -105,7 +111,9 @@ export function initScene() {
   scene.add(stars);
 
   // --- Time-tunnel rings ----------------------------------------------------
-  const RING_COUNT = 16;
+  // Skipped on low-power devices (empty loop / group — all ring code below
+  // safely no-ops on the empty list).
+  const RING_COUNT = lowPower ? 0 : 16;
   const RING_SPACING = 16;
   const ringGroup = new THREE.Group();
   const ringMaterial = new THREE.MeshBasicMaterial({

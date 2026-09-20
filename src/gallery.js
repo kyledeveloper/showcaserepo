@@ -41,9 +41,12 @@ function cardHtml(work, index, language) {
             <span class="date">${work.date[language]}</span>
           </div>
           <h2>${work.name[language]}</h2>
-          <p class="tagline">${work.description[language]}</p>
-          <ul class="facts" aria-label="${t('projectFeatures')}">${facts}</ul>
-          <div class="actions">${action}</div>
+          <div class="project-details">
+            <p class="tagline">${work.description[language]}</p>
+            <ul class="facts" aria-label="${t('projectFeatures')}">${facts}</ul>
+            <div class="actions">${action}</div>
+          </div>
+          <span class="tap-hint" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>${t('expandHint')}</span>
         </div>
         <div class="project-visual" aria-hidden="true">
           <div class="visual-stage">
@@ -105,7 +108,14 @@ export function initGallery() {
   let active = -1; // -1 = hero, 0..n-1 = project index
   let wheelTotal = 0;
   let locked = false;
-  let touchStartY = 0;
+  let touchStartY = null; // legacy binary swipe (desktop touchscreens + reduced motion)
+  let drag = null; // active drag-follow gesture (mobile only)
+  let suppressNextTap = false; // set after a drag so its trailing click doesn't toggle expand
+
+  const narrowView = () => innerWidth <= 760;
+  // Drag-follow paging runs on mobile with motion enabled; everything else
+  // keeps the old binary swipe jump.
+  const dragPagingOn = () => narrowView() && !reduced;
 
   // The add-project drawer (projectForm.js) toggles this class on <body>;
   // while it is open the gallery must not steal wheel / keys / swipes.
@@ -126,7 +136,17 @@ export function initGallery() {
     hero.classList.toggle('is-active', onHero);
     hero.setAttribute('aria-hidden', onHero ? 'false' : 'true');
     document.body.classList.toggle('is-hero', onHero);
-    if (guide) guide.classList.toggle('is-hidden', onHero);
+    if (guide) {
+      // Mobile: full header on the hero, slim mini bar on project screens.
+      // Desktop keeps the old behavior (hidden on hero).
+      const narrow = innerWidth <= 760;
+      guide.classList.toggle('is-hidden', onHero && !narrow);
+      guide.classList.toggle('is-mini', !onHero && narrow);
+    }
+
+    // Mobile page-turn: flat vertical slide + fade + subtle scale with an
+    // expo ease (see CSS). Desktop keeps the 3D tunnel math below untouched.
+    const mobileView = innerWidth <= 760;
 
     chapters.forEach((chapter, index) => {
       const relative = index - active;
@@ -138,10 +158,32 @@ export function initGallery() {
       chapter.style.zIndex = String(relative < 0 ? 0 : chapters.length - relative);
 
       if (relative < 0) {
-        chapter.style.transform = `translate3d(0, -64%, ${reduced ? 0 : 90}px) rotateX(${reduced ? 0 : 58}deg) scale(.94)`;
-        chapter.style.opacity = '0';
+        if (mobileView) {
+          // Past cards: slide up and fade out (no 3D flip on mobile).
+          chapter.style.transform = reduced ? 'none' : 'translate3d(0, -38%, 0) scale(.96)';
+          chapter.style.opacity = '0';
+        } else {
+          chapter.style.transform = `translate3d(0, -64%, ${reduced ? 0 : 90}px) rotateX(${reduced ? 0 : 58}deg) scale(.94)`;
+          chapter.style.opacity = '0';
+        }
+      } else if (mobileView) {
+        // At most two cards peek behind the active one; the rest stay hidden.
+        if (relative === 0) {
+          chapter.style.transform = 'none';
+          chapter.style.opacity = '1';
+        } else if (relative <= 2) {
+          // 24px peek keeps the behind card's pinned name legible instead of
+          // clipping it mid-glyph.
+          chapter.style.transform = reduced
+            ? 'none'
+            : `translate3d(0, ${relative * 24}px, 0) scale(${1 - relative * 0.04})`;
+          chapter.style.opacity = String(Math.max(0.3, 1 - relative * 0.3));
+        } else {
+          chapter.style.transform = 'none';
+          chapter.style.opacity = '0';
+        }
       } else {
-        const offset = innerWidth <= 760 ? 18 : 34;
+        const offset = 34;
         const depth = reduced ? 0 : relative * -76;
         const scale = 1 - relative * 0.032;
         chapter.style.transform = `translate3d(0, ${relative * offset}px, ${depth}px) rotateX(${reduced ? 0 : relative * -1.8}deg) scale(${scale})`;
@@ -196,13 +238,34 @@ export function initGallery() {
   function bindCardInteractions(chapter, index) {
     const card = chapter.querySelector('.project-card');
     card.addEventListener('click', (event) => {
+      // A drag-follow gesture ends with a click on some browsers — swallow it
+      // so a drag never accidentally toggles the card open.
+      if (suppressNextTap) {
+        suppressNextTap = false;
+        return;
+      }
       if (index !== active || event.target.closest('a, button') || !touchLike.matches) return;
+      const willOpen = !card.classList.contains('is-open');
       card.classList.toggle('is-open');
+      // Touch browsers move focus into the tapped card (or a link inside it),
+      // and the sticky :focus-within would keep it expanded after .is-open is
+      // removed. Blur on collapse so a second tap can actually close it.
+      if (!willOpen) {
+        const focused = document.activeElement;
+        if (focused && card.contains(focused)) focused.blur();
+      }
     });
     card.addEventListener('keydown', (event) => {
       if (index !== active || !['Enter', ' '].includes(event.key) || event.target.closest('a, button')) return;
       event.preventDefault();
+      const willOpen = !card.classList.contains('is-open');
       card.classList.toggle('is-open');
+      // Same sticky-focus guard for touch keyboards; non-touch keyboard users
+      // keep the :focus-within expand behavior untouched.
+      if (!willOpen && touchLike.matches) {
+        const focused = document.activeElement;
+        if (focused && card.contains(focused)) focused.blur();
+      }
     });
   }
 
@@ -215,7 +278,7 @@ export function initGallery() {
       if (drawerOpen()) return;
       if (Math.abs(event.deltaY) < Math.abs(event.deltaX)) return;
       event.preventDefault();
-      if (locked) return;
+      if (locked || (drag && drag.moved)) return;
       wheelTotal += event.deltaY;
       if (Math.abs(wheelTotal) < 46) return;
       const direction = wheelTotal > 0 ? 1 : -1;
@@ -230,13 +293,159 @@ export function initGallery() {
   );
 
   addEventListener('touchstart', (event) => {
-    touchStartY = event.changedTouches[0].clientY;
+    if (drawerOpen() || event.touches.length !== 1) {
+      // A second finger mid-drag aborts the gesture and snaps back.
+      if (drag && drag.moved) {
+        const aborted = drag;
+        drag = null;
+        aborted.el.style.transition = '';
+        aborted.el.style.transform = '';
+        locked = false;
+        renderStack();
+      } else {
+        drag = null;
+      }
+      touchStartY = null;
+      return;
+    }
+    const startY = event.touches[0].clientY;
+    if (!dragPagingOn()) {
+      drag = null;
+      touchStartY = startY;
+      return;
+    }
+    // Only the hero or the active chapter can start a page drag (behind
+    // chapters have pointer-events: none, so they never receive touches).
+    const el = hero.classList.contains('is-active') ? hero : chapters[active];
+    // Leave controls alone (timeline dots, buttons, links, utility bar) —
+    // swipes starting on them fall back to the legacy binary jump below.
+    if (!el || event.target.closest('a, button, nav, .utility-controls')) {
+      drag = null;
+      touchStartY = startY;
+      return;
+    }
+    touchStartY = null;
+    // If the touch lands in a genuinely scrollable details region, native
+    // scrolling wins while it can move in the drag direction; touchmove hands
+    // the gesture back to paging once the scroll edge is reached.
+    let scrollEl = null;
+    const card = el.querySelector ? el.querySelector('.project-card') : null;
+    const details = card && event.target.closest('.project-details');
+    if (details) {
+      const overflowY = getComputedStyle(details).overflowY;
+      if (
+        (overflowY === 'auto' || overflowY === 'scroll') &&
+        details.scrollHeight > details.clientHeight + 1
+      ) {
+        scrollEl = details;
+      }
+    }
+    const now = performance.now();
+    drag = {
+      el,
+      startY,
+      samples: [{ y: startY, t: now }],
+      height: el.getBoundingClientRect().height || innerHeight,
+      moved: false,
+      scrollEl,
+      atStart: active <= -1,
+      atEnd: active >= works.length - 1
+    };
   }, { passive: true });
+
+  addEventListener('touchmove', (event) => {
+    if (!drag) return;
+    const now = performance.now();
+    const y = event.touches[0].clientY;
+    // Scroll handoff: the gesture started inside a scrollable details area.
+    // While it can move in this direction, let native scrolling handle it —
+    // never hijack. At the scroll edge, convert to a page drag from here.
+    if (drag.scrollEl && !drag.moved) {
+      const box = drag.scrollEl;
+      const dy0 = y - drag.startY;
+      const canScrollUp = dy0 < 0 && box.scrollTop + box.clientHeight < box.scrollHeight - 1;
+      const canScrollDown = dy0 > 0 && box.scrollTop > 1;
+      if (canScrollUp || canScrollDown) return;
+      drag.startY = y;
+      drag.samples = [{ y, t: now }];
+      drag.scrollEl = null;
+    }
+    const dy = y - drag.startY;
+    drag.samples.push({ y, t: now });
+    while (drag.samples.length > 2 && now - drag.samples[0].t > 120) drag.samples.shift();
+    if (!drag.moved) {
+      if (Math.abs(dy) < 10) return; // still a tap — don't hijack
+      drag.moved = true;
+      drag.el.style.transition = 'none'; // follow the finger 1:1
+      locked = true; // block wheel paging mid-drag
+    }
+    event.preventDefault();
+    // Resistance when dragging past the first / last screen.
+    const offset = (drag.atStart && dy > 0) || (drag.atEnd && dy < 0) ? dy * 0.32 : dy;
+    drag.el.style.transform = `translate3d(0, ${offset}px, 0) scale(.985)`;
+  }, { passive: false });
+
+  function finishDrag(event, cancelled) {
+    const d = drag;
+    drag = null;
+    if (!d) return;
+    locked = false;
+    if (!d.moved || cancelled) {
+      if (!d.moved) {
+        d.el.style.transition = '';
+        d.el.style.transform = '';
+        return; // tap — the click handler toggles expand
+      }
+      // Snap back: settle noticeably quicker than a full page turn.
+      d.el.style.transition = 'transform .35s cubic-bezier(.16,1,.3,1), opacity .3s ease';
+      d.el.style.transform = '';
+      renderStack();
+      const snapEl = d.el;
+      setTimeout(() => {
+        // Don't clobber a newer drag's 'none' transition mid-gesture; its
+        // own finishDrag manages the transition from here.
+        if (!drag || drag.el !== snapEl) snapEl.style.transition = '';
+      }, 400);
+      return;
+    }
+    d.el.style.transition = '';
+    d.el.style.transform = '';
+    const endY = event.changedTouches[0].clientY;
+    const dy = endY - d.startY;
+    const first = d.samples[0];
+    const last = d.samples[d.samples.length - 1];
+    const velocity = last.t > first.t ? (last.y - first.y) / (last.t - first.t) : 0;
+    let direction = 0;
+    if (Math.abs(dy) > d.height * 0.25) {
+      direction = dy < 0 ? 1 : -1; // dragged past 25% of the card
+    } else if (Math.abs(velocity) > 0.55 && Math.abs(dy) > 24) {
+      direction = velocity < 0 ? 1 : -1; // flick
+    }
+    if (direction !== 0) {
+      // Clearing the inline transform above lets renderStack()'s new
+      // transform animate from the finger position with the expo ease.
+      setActive(active + direction);
+    } else {
+      renderStack(); // snap back with the expo ease
+    }
+    suppressNextTap = true;
+    setTimeout(() => {
+      suppressNextTap = false;
+    }, 250);
+  }
+
   addEventListener('touchend', (event) => {
-    if (drawerOpen()) return;
+    if (drag) {
+      finishDrag(event, false);
+      return;
+    }
+    // Legacy binary swipe jump (desktop touchscreens + reduced motion).
+    if (drawerOpen() || touchStartY == null) return;
     const delta = touchStartY - event.changedTouches[0].clientY;
+    touchStartY = null;
     if (Math.abs(delta) > 56) setActive(active + (delta > 0 ? 1 : -1));
   }, { passive: true });
+  addEventListener('touchcancel', (event) => finishDrag(event, true), { passive: true });
 
   addEventListener('keydown', (event) => {
     if (event.target.closest('a, button, input, textarea, select, [contenteditable]')) return;
@@ -256,7 +465,16 @@ export function initGallery() {
     }
   });
 
-  addEventListener('resize', () => renderStack(), { passive: true });
+  addEventListener('resize', () => {
+    // Abandon any in-flight drag (its measurements are stale after resize).
+    if (drag) {
+      drag.el.style.transition = '';
+      drag.el.style.transform = '';
+      drag = null;
+      locked = false;
+    }
+    renderStack();
+  }, { passive: true });
 
   // Re-render card copy when the language changes (preserve expand state).
   onLanguageChange((language) => {
